@@ -14,8 +14,8 @@
 </head>
 
 <body>
-    <div class="chatBox" id="testingStuff" hx-ext="sse" sse-connect="/events" sse-swap="messageDelivered" hx-swap="afterbegin">
-       <div> <p>Connected</p></div>
+    <div class="chatBox" id="testingStuff" hx-ext="sse" sse-connect="/events" sse-swap="messageDelivered,clientConnected" hx-swap="afterbegin">
+       <div hx-get="/con?name={{name}}" hx-trigger="load" hx-swap="none"> <p>{{name}}</p></div>
     </div>
 
     <form
