@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatie</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='myclasses.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"
+    integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx-ext-sse@2.2.4" integrity="sha384-A986SAtodyH8eg8x8irJnYUk7i9inVQqYigD6qZ9evobksGNIXfeFvDwLSHcp31N" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
+</head>
+
+<body>
+    <div class="chatBox" id="testingStuff" hx-ext="sse" sse-connect="/events" sse-swap="messageDelivered" hx-swap="afterbegin">
+       <div> <p>Connected</p></div>
+    </div>
+
+    <form
+        class="textForm"
+        hx-post="/pushMessage"
+        hx-trigger="keydown[key=='Enter']"
+        hx-target="#testingStuff"
+        hx-swap="none"
+        hx-on::before-request="
+                if (document.getElementById('myInput').value.trim() === '') {
+                    event.preventDefault();
+                }
+            "
+        hx-on::after-request="document.getElementById('myInput').value = ''"
+    >
+        <textarea
+            class="textAreaBox"
+            id="myInput"
+            name="message"
+            placeholder="Type your message here"
+        ></textarea>
+    </form>
+
+
+</body>
+
+</html>

@@ -1,0 +1,80 @@
+body {
+    background-color: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+.chatBox {
+    height: 80vh;
+    width: 50%;
+    display: flex;
+    flex-direction: column-reverse;
+    overflow-y: auto;
+    text-align: center;
+    border-style: solid;
+    border-radius: 10px;
+    border-width: 0.1px;
+    border-color: #212121;
+    gap: 6px;
+}
+.textForm {
+    display: flex;
+    justify-content: center;
+}
+.textAreaBox {
+    position: fixed;
+    height: 15%;
+    bottom: 15px;
+    width: 50%;
+    background-color: #212121;
+    color: white;
+    resize: none;
+    text-align: center;
+    text-align-last: center;
+    font-size: x-large;
+    box-shadow: rgba(100, 100, 111, 0.8) 0px 0px 29px 10px;
+    border: none;
+    outline: none;
+    border-radius: 10px;
+}
+.rightMsg {
+    display: flex;
+    align-self: end;
+    padding: 15px;
+    background-color: #282828;
+    width: auto;
+    margin: 0;
+    border-radius: 20px;
+}
+.leftMsg {
+    display: flex;
+    align-self: start;
+    padding: 15px;
+    background-color: #282828;
+    width: auto;
+    margin: 0;
+    border-radius: 20px;
+}
+
+.textMsg {
+    margin: 0;
+    word-wrap: anywhere;
+    min-width: 1px;
+    max-width: 25vw;
+}
+.rightTime {
+    font-size: xx-small;
+    margin-right: 10px;
+    margin-block: 0;
+    align-self: end;
+}
+.leftTime {
+    font-size: xx-small;
+    margin-left: 10px;
+    margin-block: 0;
+    align-self: end;
+}
