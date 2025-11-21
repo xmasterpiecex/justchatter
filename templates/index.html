@@ -17,6 +17,7 @@
     <div class="chatBox" id="testingStuff" hx-ext="sse" sse-connect="/events" sse-swap="messageDelivered, clientConnected" hx-swap="afterbegin">
        <div hx-get="/con" hx-trigger="load"> </div>
     </div>
+    <button type="button" hx-get="/test/3"">Button</button>
 
     <form
         class="textForm"
