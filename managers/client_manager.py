@@ -1,8 +1,4 @@
 from asyncio import Queue
-from sqlalchemy import select
-from db.base import AsyncSessionLocal
-from db.models import Message, Client
-
 
 class ClientManager:
     def __init__(self) -> None:
@@ -14,31 +10,14 @@ class ClientManager:
     def remove_client(self, id: int):
         self.clients.pop( id, None )
 
-    async def selfClientMsg(self, client_id:int, data:str):
-        if client_id in self.clients:
-            await self.clients[client_id].put(data)
+    async def broadcastMsg(self, sender_id:int, message: str, time):
 
-    async def excludeClientMsg(self, me_id:int, data:str):
-        for cid, q in self.clients.items():
-            if me_id != cid:
-                await q.put(data)
+        def html(client_id) -> str:
+            me = (sender_id == client_id)
+            if me:
+                return f"event:messageDelivered\ndata:<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div>\n\n"
+            else:
+                return f"event:messageDelivered\ndata:<div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>\n\n"
 
-    async def broadcastMsg(self, sender_id:int, data: str):
         for id, q in self.clients.items():
-           await q.put(data)
-
-    async def ensure_client_exists(self, client_id: int):
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(select(Client).where(Client.id == client_id))
-            client = result.scalar_one_or_none()
-            if client is None:
-                new_client = Client(id=client_id)
-                session.add(new_client)
-                await session.commit()
-
-    async def writeMsgtoDb(self, id: int, msg: str):
-        await self.ensure_client_exists(id)
-        async with AsyncSessionLocal() as session:
-            message = Message(client_id=id, text=msg)
-            session.add(message)
-            await session.commit()
+           await q.put(html(id))

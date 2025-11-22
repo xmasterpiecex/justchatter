@@ -15,6 +15,8 @@ template = Jinja2Templates(directory="templates")
 
 manager = ClientManager()
 
+
+
 @app.get("/events")
 async def events(req:Request):
     queue = Queue()
@@ -22,6 +24,7 @@ async def events(req:Request):
 
     manager.add_client(client_id, queue)
 
+    print(manager.clients.items())
     async def stream():
         try:
             while True:
@@ -39,17 +42,6 @@ async def events(req:Request):
 
     return respons
 
-@app.get("/con", response_class=Response)
-async def conn(req : Request):
-    newConnText = "<div><----New client connected----></div>\n\n"
-    selfText = "<div><----WELCOME TO CHAT BE NICE :)----></div>\n\n"
-    client_id = int(req.cookies.get("client_id", -1))
-
-    await manager.selfClientMsg(client_id, f"event:clientConnected\ndata:{selfText}")
-
-    await manager.excludeClientMsg(client_id, f"event:clientConnected\ndata:{newConnText}")
-
-    return Response(status_code=204)
 
 @app.post("/pushMessage")
 async def message(req: Request, message: str=Form(...)):
@@ -57,17 +49,7 @@ async def message(req: Request, message: str=Form(...)):
     message = message.replace("\n", " ")
     time = datetime.now().strftime("%H:%M")
 
-    await manager.writeMsgtoDb(senderId, message)
-
-    def html(client_id) -> str:
-        me = (senderId == client_id)
-        if me:
-            return f"event:messageDelivered\ndata:<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div>\n\n"
-        else:
-            return f"event:messageDelivered\ndata:<div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>\n\n"
-
-    for client_id, que in manager.clients.items():
-        await que.put(html(client_id))
+    await manager.broadcastMsg(senderId, message, time)
 
     return Response(status_code=204)
 
@@ -82,10 +64,6 @@ async def index(req: Request):
 
     return respons
 
-@app.get("/test/{id}")
-def test(id: int):
-    print(id)
-    return {"id_IS" : id}
 
 if __name__ == "__main__":
-    uvicorn.run(app="main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(app="main:app", host="0.0.0.0", port=8000, reload=True)
