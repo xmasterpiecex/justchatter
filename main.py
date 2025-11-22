@@ -15,8 +15,6 @@ template = Jinja2Templates(directory="templates")
 
 manager = ClientManager()
 
-
-
 @app.get("/events")
 async def events(req:Request):
     queue = Queue()
@@ -42,14 +40,13 @@ async def events(req:Request):
 
     return respons
 
-
 @app.post("/pushMessage")
 async def message(req: Request, message: str=Form(...)):
     senderId = int( req.cookies['client_id'] )
     message = message.replace("\n", " ")
     time = datetime.now().strftime("%H:%M")
 
-    await manager.broadcastMsg(senderId, message, time)
+    await manager.send_message(senderId, message, time)
 
     return Response(status_code=204)
 
@@ -63,6 +60,12 @@ async def index(req: Request):
     respons.set_cookie("client_id", client_id)
 
     return respons
+
+@app.get("/conn")
+async def conn(req: Request):
+    sender_id = int(req.cookies['client_id'])
+    await manager.send_hi_message(sender_id)
+    return Response(status_code=204)
 
 
 if __name__ == "__main__":
