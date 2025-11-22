@@ -17,16 +17,6 @@ class ClientManager:
     def remove_client(self, id: int):
         self.clients.pop( id, None )
 
-    async def send_hi_message(self, sender_id: int):
-        clients_pkg = f"event:client_connected\ndata:<div class='hiMessage'>Welome to chat</div>\n\n"
-        foreign_pkg = f"event:client_connected\ndata:<div class='hiMessage'>New client joined to chat</div>\n\n"
-
+    async def send_message(self, sender_id: int, sender_msg: str, reciver_msg: str):
         for id, q in self.clients.items():
-           await q.put(conditional_html(sender_id, id, clients_pkg, foreign_pkg))
-
-    async def send_message(self, sender_id:int, message: str, time):
-        clients_pkg = f"event:message_delivered\ndata:<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div>\n\n"
-        foreign_pkg = f"event:message_delivered\ndata:<div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>\n\n"
-
-        for id, q in self.clients.items():
-           await q.put(conditional_html(sender_id, id, clients_pkg, foreign_pkg))
+           await q.put(conditional_html(sender_id, id, sender_msg, reciver_msg))

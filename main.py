@@ -42,11 +42,24 @@ async def events(req:Request):
 
 @app.post("/pushMessage")
 async def message(req: Request, message: str=Form(...)):
-    senderId = int( req.cookies['client_id'] )
+    sender_id = int( req.cookies['client_id'] )
     message = message.replace("\n", " ")
     time = datetime.now().strftime("%H:%M")
 
-    await manager.send_message(senderId, message, time)
+    clients_pkg = f"event:message_delivered\ndata:<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div>\n\n"
+    foreign_pkg = f"event:message_delivered\ndata:<div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>\n\n"
+
+    await manager.send_message(sender_id, clients_pkg, foreign_pkg)
+
+    return Response(status_code=204)
+
+@app.get("/conn")
+async def conn(req: Request):
+    sender_id = int(req.cookies['client_id'])
+    clients_pkg = f"event:client_connected\ndata:<div class='hiMessage'>Welome to chat</div>\n\n"
+    foreign_pkg = f"event:client_connected\ndata:<div class='hiMessage'>New client joined to chat</div>\n\n"
+
+    await manager.send_message(sender_id, clients_pkg, foreign_pkg)
 
     return Response(status_code=204)
 
@@ -61,11 +74,6 @@ async def index(req: Request):
 
     return respons
 
-@app.get("/conn")
-async def conn(req: Request):
-    sender_id = int(req.cookies['client_id'])
-    await manager.send_hi_message(sender_id)
-    return Response(status_code=204)
 
 
 if __name__ == "__main__":
