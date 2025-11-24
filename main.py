@@ -4,33 +4,39 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import uvicorn, random
 from datetime import datetime
-from asyncio import Queue
 
 from db.init_db import initDb
 from db.crud_db import write_msg_to_db, create_room
-from managers.client_manager import ClientManager
+from managers.rooms_manager import RoomsManager
 
 app = FastAPI(lifespan=initDb)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 template = Jinja2Templates(directory="templates")
 
-manager = ClientManager()
+room_manager = RoomsManager()
 
-@app.get("/events")
-async def events(req:Request):
-    queue = Queue()
-    client_id = int(req.cookies.get("client_id", -1))
+@app.get("/events/{room_id}")
+async def events(room_id:int, req:Request):
+    room = room_manager.get_room(room_id)
+    client_id = req.cookies.get("client_id") or str(id(req))
 
-    manager.add_client(client_id, queue)
+    room.add_client(client_id)
+    q = room.clients[client_id]
 
     async def stream():
         try:
             while True:
-                msg = await queue.get()
+                if await req.is_disconnected():
+                    print(f"Client  disconnected")
+                    break
+
+                ev, html = await q.get()
+                msg = f"event:{ev}\ndata:{html}\n\n"
+
                 yield msg
         finally:
-            manager.remove_client(client_id)
-            print(f"Client  disconnected")
+            print("Client disconnected")
+            room.remove_client(client_id)
 
     respons = StreamingResponse(stream(), media_type="text/event-stream", headers={
                 "Cache-Control": "no-cache",
@@ -42,40 +48,55 @@ async def events(req:Request):
 
 @app.post("/pushMessage/{room_id}")
 async def message(room_id:int, req: Request, message: str=Form(...)):
-    sender_id = int( req.cookies['client_id'] )
+    sender_id = req.cookies['client_id']
     message = message.replace("\n", " ")
     time = datetime.now().strftime("%H:%M")
 
-    clients_pkg = f"event:message_delivered\ndata:<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div>\n\n"
-    foreign_pkg = f"event:message_delivered\ndata:<div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>\n\n"
+    sender_data = f"<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div>"
+    reciver_data = f"<div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>"
 
-    await manager.send_message(sender_id, clients_pkg, foreign_pkg)
-    await write_msg_to_db(room_id, sender_id, message, time)
+    room = room_manager.get_room(room_id)
+
+    await room.broadcast("message_delivered", sender_id, sender_data, reciver_data)
 
     return Response(status_code=204)
 
 @app.get("/conn/{room_id}")
-async def conn(room_id: int,req: Request):
-    sender_id = int(req.cookies['client_id'])
-    clients_pkg = f"event:client_connected\ndata:<div class='hiMessage'>Welome to chat</div>\n\n"
-    foreign_pkg = f"event:client_connected\ndata:<div class='hiMessage'>New client joined to chat</div>\n\n"
+async def welcome_msg(room_id:int, req: Request):
+    sender_id = req.cookies['client_id']
+    sender_data = f"<div class='hiMessage'>Welome to chat</div>\n\n"
+    reciver_data = f"<div class='hiMessage'>New client joined to chat</div>\n\n"
 
-    await manager.send_message(sender_id, clients_pkg, foreign_pkg)
-    await create_room(room_id)
+    room = room_manager.get_room(room_id)
+    await room.broadcast("client_connected", sender_id, sender_data, reciver_data)
 
     return Response(status_code=204)
 
-@app.get("/", response_class=HTMLResponse)
-async def index(req: Request):
+@app.get("/chat/{room_id}", response_class=HTMLResponse)
+async def index(room_id: int, req: Request):
     client_id = req.cookies.get("client_id")
     if not client_id:
         client_id = str(random.randint(0,1000))
 
-    respons = template.TemplateResponse(request=req, name="index.html")
+    respons = template.TemplateResponse(request=req, name="index.html", context={"room_id": room_id})
     respons.set_cookie("client_id", client_id)
 
     return respons
 
+@app.get("/log", response_class=HTMLResponse)
+async def loginin_page(req: Request):
 
+    respons = template.TemplateResponse(request=req, name="login_page.html")
+
+    return respons
+
+@app.get("/red", response_class=Response)
+async def redirect(room: str, name: str):
+    room = room.replace("\n", " ")
+    name = name.replace("\n", " ")
+    # await create_room(room_id)
+
+    return Response(status_code=200, headers={"HX-Redirect": f"/chat/{room}"})
+#
 if __name__ == "__main__":
     uvicorn.run(app="main:app", host="0.0.0.0", port=8000, reload=True)
