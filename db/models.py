@@ -1,15 +1,13 @@
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, select
-from datetime import datetime, timezone
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from .base import Base
 
 class Room(Base):
     __tablename__ = "rooms"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
     clients = relationship("Client", back_populates="room")
     messages = relationship("Message", back_populates="room", cascade="all, delete-orphan")
-
 
 class Client(Base):
     __tablename__ = "clients"
@@ -27,7 +25,7 @@ class Message(Base):
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     text = Column(String, nullable=False)
-    timeStamp = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    timeStamp = Column(String, nullable=False)
 
-    message = relationship("Message", back_populates="messages")
+    client = relationship("Client", back_populates="messages")
     room = relationship("Room", back_populates="messages")

@@ -15,12 +15,12 @@
 
 <body>
     <div class="chatBox" id="testingStuff" hx-ext="sse" sse-connect="/events" sse-swap="message_delivered, client_connected" hx-swap="afterbegin">
-        <div hx-get="/conn" hx-trigger="load"></div>
+        <div hx-get="/conn/20" hx-trigger="load"></div>
     </div>
 
     <form
         class="textForm"
-        hx-post="/pushMessage"
+        hx-post="/pushMessage/20"
         hx-trigger="keydown[key=='Enter']"
         hx-target="#testingStuff"
         hx-swap="none"

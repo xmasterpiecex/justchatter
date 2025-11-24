@@ -6,7 +6,8 @@ import uvicorn, random
 from datetime import datetime
 from asyncio import Queue
 
-from  db.init_db import initDb
+from db.init_db import initDb
+from db.crud_db import write_msg_to_db, create_room
 from managers.client_manager import ClientManager
 
 app = FastAPI(lifespan=initDb)
@@ -22,7 +23,6 @@ async def events(req:Request):
 
     manager.add_client(client_id, queue)
 
-    print(manager.clients.items())
     async def stream():
         try:
             while True:
@@ -40,8 +40,8 @@ async def events(req:Request):
 
     return respons
 
-@app.post("/pushMessage")
-async def message(req: Request, message: str=Form(...)):
+@app.post("/pushMessage/{room_id}")
+async def message(room_id:int, req: Request, message: str=Form(...)):
     sender_id = int( req.cookies['client_id'] )
     message = message.replace("\n", " ")
     time = datetime.now().strftime("%H:%M")
@@ -50,16 +50,18 @@ async def message(req: Request, message: str=Form(...)):
     foreign_pkg = f"event:message_delivered\ndata:<div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>\n\n"
 
     await manager.send_message(sender_id, clients_pkg, foreign_pkg)
+    await write_msg_to_db(room_id, sender_id, message, time)
 
     return Response(status_code=204)
 
-@app.get("/conn")
-async def conn(req: Request):
+@app.get("/conn/{room_id}")
+async def conn(room_id: int,req: Request):
     sender_id = int(req.cookies['client_id'])
     clients_pkg = f"event:client_connected\ndata:<div class='hiMessage'>Welome to chat</div>\n\n"
     foreign_pkg = f"event:client_connected\ndata:<div class='hiMessage'>New client joined to chat</div>\n\n"
 
     await manager.send_message(sender_id, clients_pkg, foreign_pkg)
+    await create_room(room_id)
 
     return Response(status_code=204)
 
@@ -73,7 +75,6 @@ async def index(req: Request):
     respons.set_cookie("client_id", client_id)
 
     return respons
-
 
 
 if __name__ == "__main__":
