@@ -18,15 +18,17 @@ async def write_msg_to_db(room_id: int, sender_id: int, msg: str, time: str):
         session.add(message)
         await session.commit()
 
-async def create_room(room_id:int):
+async def create_room(room_name:str):
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(Room).where(Room.id == room_id))
+        result = await session.execute(select(Room).where(Room.room_name == room_name))
         exist_room = result.scalar_one_or_none()
         if exist_room:
             print(f"[EXEPTION]'{exist_room}' room is already exist")
             return exist_room;
 
-        room = Room(id=room_id)
+        room = Room(room_name=room_name)
         session.add(room)
         print(f"[CREATE]'{room}' room created")
         await session.commit()
+        await session.refresh(room)
+        return room

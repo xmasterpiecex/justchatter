@@ -27,11 +27,11 @@ class RoomsManager:
     def __init__(self) -> None:
         self.rooms = {}
 
-    def get_room(self, room_id: int):
-        if room_id not in self.rooms:
-            self.rooms[room_id] = Room()
-        return self.rooms[room_id]
+    def get_room(self, room_name: str):
+        if room_name not in self.rooms:
+            self.rooms[room_name] = Room()
+        return self.rooms[room_name]
 
-    async def send_msg_to_room(self, room_id:int, msg: str):
-        room = self.get_room(room_id)
+    async def send_msg_to_room(self, room_name:str, msg: str):
+        room = self.get_room(room_name)
         await room.send(msg)

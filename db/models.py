@@ -5,7 +5,8 @@ from .base import Base
 class Room(Base):
     __tablename__ = "rooms"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    room_name = Column(String, unique=True, nullable=False)
     clients = relationship("Client", back_populates="room")
     messages = relationship("Message", back_populates="room", cascade="all, delete-orphan")
 
@@ -16,7 +17,7 @@ class Client(Base):
     roomId = Column(Integer, ForeignKey("rooms.id"))
 
     room = relationship("Room", back_populates="clients")
-    messages = relationship("Message", back_populates="client", cascade="all, delete-orphan")
+    messages = relationship("Message", back_populates="clients", cascade="all, delete-orphan")
 
 class Message(Base):
     __tablename__ = "messages"
@@ -27,5 +28,5 @@ class Message(Base):
     text = Column(String, nullable=False)
     timeStamp = Column(String, nullable=False)
 
-    client = relationship("Client", back_populates="messages")
+    clients = relationship("Client", back_populates="messages")
     room = relationship("Room", back_populates="messages")

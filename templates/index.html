@@ -13,12 +13,12 @@
     </head>
 
     <body>
-        <div class="chatBox" id="testingStuff" hx-ext="sse" sse-connect="/events/{{data.room_id}}" sse-swap="message_delivered, client_connected" hx-swap="afterbegin">
-            <div hx-get="/conn/{{data.room_id}}" hx-trigger="load" hx-swap="none"></div>
+        <div class="chatBox" id="testingStuff" hx-ext="sse" sse-connect="/events/{{data.room_name}}" sse-swap="message_delivered, client_connected" hx-swap="afterbegin">
+            <div hx-get="/conn/{{data.room_name}}" hx-trigger="load" hx-swap="none"></div>
         </div>
         <form
             class="textForm"
-            hx-post="/pushMessage/{{data.room_id}}"
+            hx-post="/pushMessage/{{data.room_name}}"
             hx-trigger="keydown[key=='Enter']"
             hx-target="#testingStuff"
             hx-swap="none"

@@ -23,9 +23,9 @@ template = Jinja2Templates(directory="templates")
 
 room_manager = RoomsManager()
 
-@app.get("/events/{room_id}")
-async def events(room_id:int, req:Request):
-    room = room_manager.get_room(room_id)
+@app.get("/events/{room_name}")
+async def events(room_name:str, req:Request):
+    room = room_manager.get_room(room_name)
     client_id = req.cookies.get("client_id") or str(id(req))
 
     room.add_client(client_id)
@@ -54,8 +54,8 @@ async def events(room_id:int, req:Request):
 
     return respons
 
-@app.post("/pushMessage/{room_id}")
-async def message(room_id:int, req: Request, message: str=Form(...)):
+@app.post("/pushMessage/{room_name}")
+async def message(room_name:str, req: Request, message: str=Form(...)):
     sender_id = req.cookies['client_id']
     message = message.replace("\n", " ")
     time = datetime.now().strftime("%H:%M")
@@ -64,25 +64,25 @@ async def message(room_id:int, req: Request, message: str=Form(...)):
     sender_data = f"<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p><p class='rightName'>{name}</p></div>"
     reciver_data = f"<div class='leftMsg'><p class='leftName'>{name}</p><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>"
 
-    room = room_manager.get_room(room_id)
+    room = room_manager.get_room(room_name)
 
     await room.broadcast("message_delivered", sender_id, sender_data, reciver_data)
 
     return Response(status_code=204)
 
-@app.get("/conn/{room_id}")
-async def welcome_msg(room_id:int, req: Request):
+@app.get("/conn/{room_name}")
+async def welcome_msg(room_name:str, req: Request):
     sender_id = req.cookies['client_id']
     sender_data = f"<div class='hiMessage'>Welome to chat</div>\n\n"
     reciver_data = f"<div class='hiMessage'>New client joined to chat</div>\n\n"
 
-    room = room_manager.get_room(room_id)
+    room = room_manager.get_room(room_name)
     await room.broadcast("client_connected", sender_id, sender_data, reciver_data)
 
     return Response(status_code=204)
 
-@app.get("/chat/{room_id}", response_class=HTMLResponse)
-async def index(room_id: int, req: Request):
+@app.get("/chat/{room_name}", response_class=HTMLResponse)
+async def index(room_name: str, req: Request):
     client_id = req.cookies.get("client_id")
 
     if not client_id:
@@ -90,7 +90,7 @@ async def index(room_id: int, req: Request):
 
     name = req.session.get("name", "Uknown")
     data = {
-        "room_id" : room_id,
+        "room_name" : room_name,
         "client_name": name
     }
 
@@ -111,7 +111,7 @@ async def enter_to_chat(req:Request, room: str=Form(...), name: str=Form(...)):
     room = room.replace("\n", " ")
     name = name.replace("\n", " ")
     req.session["name"]= name
-    # await create_room(room_id)
+    await create_room(room)
 
     return Response(status_code=200, headers={"HX-Redirect": f"/chat/{room}"})
 
