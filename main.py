@@ -1,16 +1,24 @@
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, Response, StreamingResponse
+from fastapi.responses import HTMLResponse, Response, StreamingResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 import uvicorn, random
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 
 from db.init_db import initDb
 from db.crud_db import write_msg_to_db, create_room
 from managers.rooms_manager import RoomsManager
 
+load_dotenv()
+
+SECRET_KEY = os.getenv("Session_Middleware_SECRET_KEY")
+
 app = FastAPI(lifespan=initDb)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.add_middleware(SessionMiddleware, secret_key=f"{SECRET_KEY}")
 template = Jinja2Templates(directory="templates")
 
 room_manager = RoomsManager()
@@ -51,9 +59,10 @@ async def message(room_id:int, req: Request, message: str=Form(...)):
     sender_id = req.cookies['client_id']
     message = message.replace("\n", " ")
     time = datetime.now().strftime("%H:%M")
+    name = req.session.get("name", "Uknown")
 
-    sender_data = f"<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div>"
-    reciver_data = f"<div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>"
+    sender_data = f"<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p><p class='rightName'>{name}</p></div>"
+    reciver_data = f"<div class='leftMsg'><p class='leftName'>{name}</p><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>"
 
     room = room_manager.get_room(room_id)
 
@@ -75,10 +84,17 @@ async def welcome_msg(room_id:int, req: Request):
 @app.get("/chat/{room_id}", response_class=HTMLResponse)
 async def index(room_id: int, req: Request):
     client_id = req.cookies.get("client_id")
+
     if not client_id:
         client_id = str(random.randint(0,1000))
 
-    respons = template.TemplateResponse(request=req, name="index.html", context={"room_id": room_id})
+    name = req.session.get("name", "Uknown")
+    data = {
+        "room_id" : room_id,
+        "client_name": name
+    }
+
+    respons = template.TemplateResponse(request=req, name="index.html", context={"data": data})
     respons.set_cookie("client_id", client_id)
 
     return respons
@@ -90,13 +106,19 @@ async def loginin_page(req: Request):
 
     return respons
 
-@app.get("/red", response_class=Response)
-async def redirect(room: str, name: str):
+@app.post("/enter", response_class=Response)
+async def enter_to_chat(req:Request, room: str=Form(...), name: str=Form(...)):
     room = room.replace("\n", " ")
     name = name.replace("\n", " ")
+    req.session["name"]= name
     # await create_room(room_id)
 
     return Response(status_code=200, headers={"HX-Redirect": f"/chat/{room}"})
-#
+
+
+@app.get("/", response_class=RedirectResponse)
+async def redirection():
+    return RedirectResponse("/log")
+
 if __name__ == "__main__":
     uvicorn.run(app="main:app", host="0.0.0.0", port=8000, reload=True)

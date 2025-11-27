@@ -10,7 +10,7 @@
         </script>
     </head>
     <body>
-        <form class="login-container" hx-get="/red">
+        <form class="login-container" hx-post="/enter" hx-trigger="submit">
             <h1 style="margin: 0;">Welcome to chat</h1>
             <input class="bf-input" type="text" name="room" placeholder="Enter room number">
             <input class="bf-input" type="text" name="name" placeholder="Enter your name">

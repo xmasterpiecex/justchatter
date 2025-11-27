@@ -11,7 +11,7 @@ async def ensure_client_exists(client_id: int):
             session.add(new_client)
             await session.commit()
 
-async def write_msg_to_db(room_id: int,sender_id: int, msg: str, time: str):
+async def write_msg_to_db(room_id: int, sender_id: int, msg: str, time: str):
     await ensure_client_exists(sender_id)
     async with AsyncSessionLocal() as session:
         message = Message(room_id=room_id, client_id=sender_id, text=msg, timeStamp=time)
