@@ -2,21 +2,42 @@ from db.base import AsyncSessionLocal
 from sqlalchemy import select
 from db.models import Client, Message, Room
 
-async def ensure_client_exists(client_id: int):
+async def ensure_client_exists(client_cache_id: str):
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(Client).where(Client.id == client_id))
+        result = await session.execute(select(Client).where(Client.client_cache_num == int(client_cache_id)))
         client = result.scalar_one_or_none()
         if client is None:
-            new_client = Client(id=client_id)
-            session.add(new_client)
-            await session.commit()
+            raise ValueError(f"[DB ERR] Client '{client}' does not exist")
+        return client
 
-async def write_msg_to_db(room_id: int, sender_id: int, msg: str, time: str):
-    await ensure_client_exists(sender_id)
+async def ensure_room(room_name: str):
     async with AsyncSessionLocal() as session:
-        message = Message(room_id=room_id, client_id=sender_id, text=msg, timeStamp=time)
+        result = await session.execute(select(Room).where(Room.room_name == room_name))
+        room = result.scalar_one_or_none()
+        if room is None:
+            raise ValueError(f"[DB ERR] Room '{room_name}' does not exist")
+        return room
+
+async def write_msg_to_db(room_name: str, sender_id: str, msg: str, time: str):
+    client = await ensure_client_exists(sender_id)
+    room = await ensure_room(room_name)
+
+    async with AsyncSessionLocal() as session:
+        message = Message(room_id=room.id, client_id=client.id, text=msg, timeStamp=time)
         session.add(message)
         await session.commit()
+
+async def create_client(client_name: str, client_cache_id: str, room_name:str):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Client).where(Client.client_name == client_name))
+        client = result.scalar_one_or_none()
+        room = await ensure_room(room_name)
+        if client is None:
+            client = Client(client_name=client_name, client_cache_num=int(client_cache_id), room_id=room.id)
+            session.add(client)
+            await session.commit()
+            await session.refresh(client)
+        return client
 
 async def create_room(room_name:str):
     async with AsyncSessionLocal() as session:
@@ -28,7 +49,6 @@ async def create_room(room_name:str):
 
         room = Room(room_name=room_name)
         session.add(room)
-        print(f"[CREATE]'{room}' room created")
         await session.commit()
         await session.refresh(room)
         return room

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import os
 
 from db.init_db import initDb
-from db.crud_db import write_msg_to_db, create_room
+from db.crud_db import create_client, write_msg_to_db, create_room
 from managers.rooms_manager import RoomsManager
 
 load_dotenv()
@@ -36,6 +36,7 @@ async def events(room_name:str, req:Request):
             while True:
                 if await req.is_disconnected():
                     print(f"Client  disconnected")
+                    req.cookies.clear()
                     break
 
                 ev, html = await q.get()
@@ -65,6 +66,7 @@ async def message(room_name:str, req: Request, message: str=Form(...)):
     reciver_data = f"<div class='leftMsg'><p class='leftName'>{name}</p><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>"
 
     room = room_manager.get_room(room_name)
+    await write_msg_to_db(room_name, sender_id, message, time)
 
     await room.broadcast("message_delivered", sender_id, sender_data, reciver_data)
 
@@ -77,7 +79,9 @@ async def welcome_msg(room_name:str, req: Request):
     reciver_data = f"<div class='hiMessage'>New client joined to chat</div>\n\n"
 
     room = room_manager.get_room(room_name)
+    client_name = req.session.get("name", "Uknown")
     await room.broadcast("client_connected", sender_id, sender_data, reciver_data)
+    await create_client(client_name, sender_id, room_name)
 
     return Response(status_code=204)
 
@@ -101,6 +105,8 @@ async def index(room_name: str, req: Request):
 
 @app.get("/log", response_class=HTMLResponse)
 async def loginin_page(req: Request):
+
+    req.cookies.clear()
 
     respons = template.TemplateResponse(request=req, name="login_page.html")
 
