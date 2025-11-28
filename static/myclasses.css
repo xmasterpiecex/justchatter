@@ -45,6 +45,20 @@ body {
     border-radius: 10px;
 }
 
+.rightData {
+    display: flex;
+    align-self: end;
+    align-items: center;
+    border-radius: 20px;
+}
+
+.leftData {
+    display: flex;
+    align-self: start;
+    align-items: center;
+    border-radius: 20px;
+}
+
 .rightMsg {
     display: flex;
     align-self: end;
@@ -87,24 +101,12 @@ body {
 }
 
 .rightName {
-    position: absolute;
     margin: 0;
-    padding-left: 8rem;
-    width: 20rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding-left: 20px;
 }
 
 .leftName {
-    position: absolute;
-    margin: 0;
-    margin-left: 0px;
-    margin-left: -24rem;
-    width: 20rem;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
+    padding-right: 20px;
 }
 
 .hiMessage {

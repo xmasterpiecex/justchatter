@@ -14,6 +14,25 @@
 
     <body>
         <div class="chatBox" id="testingStuff" hx-ext="sse" sse-connect="/events/{{data.room_name}}" sse-swap="message_delivered, client_connected" hx-swap="afterbegin">
+            {% for msg in data.messages %}
+            {% if msg.client_name == data.client_name %}
+            <div class='rightMsg'>
+                <div>
+                    <p class='rightTime'>{{msg.timeStamp}}</p>
+                    <p class='textMsg'>{{msg.text}}</p>
+                </div>
+                <p class='rightName'>{{msg.client_name}}</p>
+            </div>
+            {% else %}
+            <div class='leftMsg'>
+                <p class='leftName'>{{msg.client_name}}</p>
+                <div>
+                    <p class='textMsg'>{{msg.text}}</p>
+                    <p class='leftTime'>{{msg.timeStamp}}</p>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
             <div hx-get="/conn/{{data.room_name}}" hx-trigger="load" hx-swap="none"></div>
         </div>
         <form

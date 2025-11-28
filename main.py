@@ -7,9 +7,10 @@ import uvicorn, random
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import uuid
 
 from db.init_db import initDb
-from db.crud_db import create_client, write_msg_to_db, create_room
+from db.crud_db import create_client, get_messages_from_room, write_msg_to_db, create_room
 from managers.rooms_manager import RoomsManager
 
 load_dotenv()
@@ -62,15 +63,29 @@ async def message(room_name:str, req: Request, message: str=Form(...)):
     time = datetime.now().strftime("%H:%M")
     name = req.session.get("name", "Uknown")
 
-    sender_data = f"<div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p><p class='rightName'>{name}</p></div>"
-    reciver_data = f"<div class='leftMsg'><p class='leftName'>{name}</p><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div>"
+    sender_data = f"<div class='rightData'><div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div><p class='rightName'>{name}</p></div>"
+    reciver_data = f"<div class='leftData'><p class='leftName'>{name}</p><div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div></div>"
 
     room = room_manager.get_room(room_name)
-    await write_msg_to_db(room_name, sender_id, message, time)
+    await write_msg_to_db(room_name, name, message, time)
 
     await room.broadcast("message_delivered", sender_id, sender_data, reciver_data)
 
     return Response(status_code=204)
+
+@app.get("/chat/{room_name}", response_class=HTMLResponse)
+async def index(room_name: str, req: Request):
+
+    name = req.session.get("name", "Uknown")
+    messages = await get_messages_from_room(room_name)
+    data = {
+        "room_name" : room_name,
+        "client_name": name,
+        "messages": messages
+    }
+    respons = template.TemplateResponse(request=req, name="index.html", context={"data": data})
+
+    return respons
 
 @app.get("/conn/{room_name}")
 async def welcome_msg(room_name:str, req: Request):
@@ -81,46 +96,31 @@ async def welcome_msg(room_name:str, req: Request):
     room = room_manager.get_room(room_name)
     client_name = req.session.get("name", "Uknown")
     await room.broadcast("client_connected", sender_id, sender_data, reciver_data)
-    await create_client(client_name, sender_id, room_name)
+    await create_client(client_name, room_name)
 
     return Response(status_code=204)
-
-@app.get("/chat/{room_name}", response_class=HTMLResponse)
-async def index(room_name: str, req: Request):
-    client_id = req.cookies.get("client_id")
-
-    if not client_id:
-        client_id = str(random.randint(0,1000))
-
-    name = req.session.get("name", "Uknown")
-    data = {
-        "room_name" : room_name,
-        "client_name": name
-    }
-
-    respons = template.TemplateResponse(request=req, name="index.html", context={"data": data})
-    respons.set_cookie("client_id", client_id)
-
-    return respons
-
-@app.get("/log", response_class=HTMLResponse)
-async def loginin_page(req: Request):
-
-    req.cookies.clear()
-
-    respons = template.TemplateResponse(request=req, name="login_page.html")
-
-    return respons
 
 @app.post("/enter", response_class=Response)
 async def enter_to_chat(req:Request, room: str=Form(...), name: str=Form(...)):
     room = room.replace("\n", " ")
     name = name.replace("\n", " ")
     req.session["name"]= name
+    client_id = req.cookies.get("client_id")
+
+    if not client_id:
+        client_id = str(uuid.uuid4().int)
+
     await create_room(room)
 
-    return Response(status_code=200, headers={"HX-Redirect": f"/chat/{room}"})
+    respons =  Response(status_code=200, headers={"HX-Redirect": f"/chat/{room}"})
+    respons.set_cookie("client_id", client_id)
+    return respons
 
+@app.get("/log", response_class=HTMLResponse)
+async def loginin_page(req: Request):
+    req.cookies.clear()
+    respons = template.TemplateResponse(request=req, name="login_page.html")
+    return respons
 
 @app.get("/", response_class=RedirectResponse)
 async def redirection():
