@@ -1,13 +1,15 @@
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, Response, StreamingResponse, RedirectResponse
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
+from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from starlette import status
 from starlette.middleware.sessions import SessionMiddleware
 import uvicorn, random
 from datetime import datetime
 from dotenv import load_dotenv
 import os
 import uuid
+from PIL import Image
 
 from db.init_db import initDb
 from db.crud_db import create_client, get_messages_from_room, write_msg_to_db, create_room
@@ -19,6 +21,7 @@ SECRET_KEY = os.getenv("Session_Middleware_SECRET_KEY")
 
 app = FastAPI(lifespan=initDb)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/imgs", StaticFiles(directory="imgs"), name="images")
 app.add_middleware(SessionMiddleware, secret_key=f"{SECRET_KEY}")
 template = Jinja2Templates(directory="templates")
 
@@ -112,9 +115,34 @@ async def enter_to_chat(req:Request, room: str=Form(...), name: str=Form(...)):
 
     await create_room(room)
 
-    respons =  Response(status_code=200, headers={"HX-Redirect": f"/chat/{room}"})
+    respons = Response(status_code=200, headers={"HX-Redirect": f"/chat/{room}"})
     respons.set_cookie("client_id", client_id)
     return respons
+
+
+image_list = dict()
+
+async def create_image(file_data: bytes, image_name: str, client_name: str):
+    try:
+        with open(f"./imgs/{image_name}-{client_name}.jpg", "wb") as f:
+            f.write(file_data)
+        old_image = Image.open(f"./imgs/{image_name}-{client_name}.jpg")
+        new_image = old_image.resize((200, 200), Image.Resampling.LANCZOS)
+        new_image.save(f"./imgs/{image_name}-{client_name}.jpg", optimize=True, quality=95)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/image", response_class=HTMLResponse)
+async def image_upload(file: UploadFile = File(...)):
+    image_data = await file.read()
+    file_name = (file.filename or "").rsplit(".", 1)[0]
+    client_name = "tester"
+
+    await create_image(image_data, file_name, client_name)
+    response = f"<img id='preview' src='imgs/{file_name}-{client_name}.jpg' width='200' height='200'>"
+
+    return response
 
 @app.get("/log", response_class=HTMLResponse)
 async def loginin_page(req: Request):

@@ -10,12 +10,24 @@
         </script>
     </head>
     <body>
-        <form class="login-container" hx-post="/enter" hx-trigger="submit">
-            <h1 style="margin: 0;">Welcome to chat</h1>
-            <input class="bf-input" type="text" name="room" placeholder="Enter room number">
-            <input class="bf-input" type="text" name="name" placeholder="Enter your name">
-            <button class="bf-button" type="submit" >Log in</button>
-        </form>
+        <div class="login-container">
+            <form hx-post="/enter" hx-trigger="submit">
+                <h1 style="margin: 0;">Welcome to chat</h1>
+                <input class="bf-input" type="text" name="room" placeholder="Enter room number">
+                <input class="bf-input" type="text" name="name" placeholder="Enter your name">
+                <button class="bf-button" type="submit" >Log in</button>
+            </form>
+            <form hx-post="/image"
+                method="post"
+                hx-trigger="change from:#file"
+                enctype="multipart/form-data"
+                hx-target="#preview"
+                hx-swap="outerHTML"
+            >
+                <input type="file" id="file" name="file" accept="image/*">
+            </form>
+                <img id="preview" hidden alt="Logo" >
+        </div>
     </body>
 
 </html>
