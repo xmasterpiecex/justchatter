@@ -48,14 +48,14 @@ body {
 .rightData {
     display: flex;
     align-self: end;
-    align-items: center;
+    align-items: end;
     border-radius: 20px;
 }
 
 .leftData {
     display: flex;
     align-self: start;
-    align-items: center;
+    align-items: end;
     border-radius: 20px;
 }
 

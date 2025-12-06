@@ -1,33 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Welcome ^_^</title>
-        <link rel="stylesheet" href="{{ url_for('static', path='myclasses.css') }}">
-        <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome ^_^</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='myclasses.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"
         integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous">
         </script>
-    </head>
-    <body>
-        <div class="login-container">
-            <form hx-post="/enter" hx-trigger="submit">
-                <h1 style="margin: 0;">Welcome to chat</h1>
-                <input class="bf-input" type="text" name="room" placeholder="Enter room number">
-                <input class="bf-input" type="text" name="name" placeholder="Enter your name">
-                <button class="bf-button" type="submit" >Log in</button>
-            </form>
-            <form hx-post="/image"
-                method="post"
-                hx-trigger="change from:#file"
-                enctype="multipart/form-data"
-                hx-target="#preview"
-                hx-swap="outerHTML"
-            >
-                <input type="file" id="file" name="file" accept="image/*">
-            </form>
-                <img id="preview" hidden alt="Logo" >
-        </div>
-    </body>
+</head>
 
+<body>
+    <div style="margin: auto;">
+        <form class="login-container" hx-post="/enter" hx-trigger="submit" enctype="multipart/form-data">
+            <h1 style="margin: 0;">Welcome to chat</h1>
+            <input class="bf-input" type="text" name="room" placeholder="Enter room number">
+            <input class="bf-input" type="text" name="name" placeholder="Enter your name">
+            <input type="file" id="image_file" name="file" accept="image/*">
+            <img id='preview' style="display: none;" width='auto' height='200px' alt="Image">
+            <button class="bf-button" type="submit">Log in</button>
+        </form>
+    </div>
+</body>
+
+<script>
+    document.getElementById("image_file").addEventListener("change", e => {
+        document.getElementById("preview").src = URL.createObjectURL(e.target.files[0]);
+        document.getElementById("preview").style.display = "block"
+    })
+</script>
 </html>

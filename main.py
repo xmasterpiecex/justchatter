@@ -1,19 +1,20 @@
-from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
-from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse, RedirectResponse
+from fastapi import FastAPI, Form,  Request, UploadFile, File
+from fastapi.responses import HTMLResponse, Response, StreamingResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from starlette import status
 from starlette.middleware.sessions import SessionMiddleware
-import uvicorn, random
+import uvicorn
 from datetime import datetime
 from dotenv import load_dotenv
 import os
 import uuid
-from PIL import Image
 
 from db.init_db import initDb
 from db.crud_db import create_client, get_messages_from_room, write_msg_to_db, create_room
 from managers.rooms_manager import RoomsManager
+from utils.utils import create_image
+
+image_list = dict()
 
 load_dotenv()
 
@@ -60,17 +61,18 @@ async def events(room_name:str, req:Request):
     return respons
 
 @app.post("/pushMessage/{room_name}")
-async def message(room_name:str, req: Request, message: str=Form(...)):
+async def message(room_name: str, req: Request, message: str=Form(...)):
     sender_id = req.cookies['client_id']
     message = message.replace("\n", " ")
     time = datetime.now().strftime("%H:%M")
-    name = req.session.get("name", "Uknown")
+    client_name = req.session.get("name", "Uknown")
+    sender_img_path = image_list[sender_id]
 
-    sender_data = f"<div class='rightData'><div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div><p class='rightName'>{name}</p></div>"
-    reciver_data = f"<div class='leftData'><p class='leftName'>{name}</p><div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div></div>"
+    sender_data = f"<div class='rightData'><div class='rightMsg'><p class='rightTime'>{time}</p><p class='textMsg'>{message}</p></div><img style='border-radius: 50%;height: 50px;width: 50px;' src='.{sender_img_path}' alt='img' width='auto' height='50px'></div>"
+    reciver_data = f"<div class='leftData'><img style='border-radius: 50%;height: 50px;width: 50px;' src='.{sender_img_path}' alt='img' width='auto' height='50px'><div class='leftMsg'><p class='textMsg'>{message}</p><p class='leftTime'>{time}</p></div></div>"
 
     room = room_manager.get_room(room_name)
-    await write_msg_to_db(room_name, name, message, time)
+    await write_msg_to_db(room_name, client_name, message, time, sender_img_path)
 
     await room.broadcast("message_delivered", sender_id, sender_data, reciver_data)
 
@@ -78,7 +80,6 @@ async def message(room_name:str, req: Request, message: str=Form(...)):
 
 @app.get("/chat/{room_name}", response_class=HTMLResponse)
 async def index(room_name: str, req: Request):
-
     name = req.session.get("name", "Uknown")
     messages = await get_messages_from_room(room_name)
     data = {
@@ -97,52 +98,31 @@ async def welcome_msg(room_name:str, req: Request):
     reciver_data = f"<div class='hiMessage'>New client joined to chat</div>\n\n"
 
     room = room_manager.get_room(room_name)
-    client_name = req.session.get("name", "Uknown")
     await room.broadcast("client_connected", sender_id, sender_data, reciver_data)
-    await create_client(client_name, room_name)
 
     return Response(status_code=204)
 
+
 @app.post("/enter", response_class=Response)
-async def enter_to_chat(req:Request, room: str=Form(...), name: str=Form(...)):
+async def enter_to_chat(req:Request, room: str=Form(...), name: str=Form(...), file: UploadFile = File(...)):
     room = room.replace("\n", " ")
     name = name.replace("\n", " ")
     req.session["name"]= name
     client_id = req.cookies.get("client_id")
+    client_img_raw = await file.read()
 
     if not client_id:
         client_id = str(uuid.uuid4().int)
 
-    await create_room(room)
+    image_path = await create_image(client_img_raw, client_id)
+    image_list[client_id] = image_path
 
-    respons = Response(status_code=200, headers={"HX-Redirect": f"/chat/{room}"})
+    await create_room(room)
+    await create_client(name, room)
+
+    respons = Response(status_code=204, headers={"HX-Redirect": f"/chat/{room}"})
     respons.set_cookie("client_id", client_id)
     return respons
-
-
-image_list = dict()
-
-async def create_image(file_data: bytes, image_name: str, client_name: str):
-    try:
-        with open(f"./imgs/{image_name}-{client_name}.jpg", "wb") as f:
-            f.write(file_data)
-        old_image = Image.open(f"./imgs/{image_name}-{client_name}.jpg")
-        new_image = old_image.resize((200, 200), Image.Resampling.LANCZOS)
-        new_image.save(f"./imgs/{image_name}-{client_name}.jpg", optimize=True, quality=95)
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/image", response_class=HTMLResponse)
-async def image_upload(file: UploadFile = File(...)):
-    image_data = await file.read()
-    file_name = (file.filename or "").rsplit(".", 1)[0]
-    client_name = "tester"
-
-    await create_image(image_data, file_name, client_name)
-    response = f"<img id='preview' src='imgs/{file_name}-{client_name}.jpg' width='200' height='200'>"
-
-    return response
 
 @app.get("/log", response_class=HTMLResponse)
 async def loginin_page(req: Request):

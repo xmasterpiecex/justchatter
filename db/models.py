@@ -28,6 +28,7 @@ class Message(Base):
     text = Column(String, nullable=False)
     timeStamp = Column(String, nullable=False)
     client_name = Column(String, nullable=False)
+    client_img = Column(String, nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
 

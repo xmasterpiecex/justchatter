@@ -21,11 +21,11 @@
                     <p class='rightTime'>{{msg.timeStamp}}</p>
                     <p class='textMsg'>{{msg.text}}</p>
                 </div>
-                <p class='rightName'>{{msg.client_name}}</p>
+                <img style='border-radius: 50%;height: 50px;width: 50px;' src='.{{msg.client_img}}' alt='img' width='auto' height='50px'>
             </div>
             {% else %}
             <div class='leftData'>
-                <p class='leftName'>{{msg.client_name}}</p>
+                <img style='border-radius: 50%;height: 50px;width: 50px;' src='.{{msg.client_img}}' alt='img' width='auto' height='50px'>
                 <div class="leftMsg">
                     <p class='textMsg'>{{msg.text}}</p>
                     <p class='leftTime'>{{msg.timeStamp}}</p>

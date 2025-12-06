@@ -18,11 +18,11 @@ async def ensure_room(room_name: str):
             raise ValueError(f"[DB ERR] Room '{room_name}' does not exist")
         return room
 
-async def write_msg_to_db(room_name: str, sender_id: str, msg: str, time: str):
+async def write_msg_to_db(room_name: str, sender_id: str, msg: str, time: str, client_img: str):
     client = await ensure_client_exists(sender_id)
     room = await ensure_room(room_name)
     async with AsyncSessionLocal() as session:
-        message = Message(room_id=room.id, client_id=client.id, text=msg, client_name=client.client_name, timeStamp=time)
+        message = Message(room_id=room.id, client_id=client.id, text=msg, client_name=client.client_name, timeStamp=time, client_img=client_img)
         session.add(message)
         await session.commit()
 
